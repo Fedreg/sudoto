@@ -5,20 +5,37 @@
    ;; [sudoto.audio :refer [play]]
    ))
 
+;; (def board
+;;   [1 2 3  4 5 6  7 8 9
+;;    2 2 3  4 5 6  7 8 9
+;;    3 2 3  4 5 6  7 8 9
+
+;;    4 2 3  4 5 6  7 8 9
+;;    5 2 3  4 5 6  7 8 9
+;;    6 2 3  4 5 6  7 8 9
+
+;;    7 2 3  4 5 6  7 8 9
+;;    8 2 3  4 5 6  7 8 9
+;;    9 2 3  4 5 6  7 8 9])
+
 (def board
-  [1 2 3  4 5 6  7 8 9
-   2 2 3  4 5 6  7 8 9
-   3 2 3  4 5 6  7 8 9
+  [0 0 3  1 5 0  0 0 0
+   2 0 0  0 0 0  3 8 9
+   4 0 0  0 0 0  0 0 0
 
-   4 2 3  4 5 6  7 8 9
-   5 2 3  4 5 6  7 8 9
-   6 2 3  4 5 6  7 8 9
+   1 3 2  4 6 4  8 9 7
+   5 6 4  7 8 9  1 2 3
+   7 8 9  2 3 1  4 5 6
 
-   7 2 3  4 5 6  7 8 9
-   8 2 3  4 5 6  7 8 9
-   9 2 3  4 5 6  7 8 9])
+   0 0 0  0 0 0  0 0 0
+   0 0 0  0 0 0  0 0 0
+   0 0 0  0 0 0  0 0 0])
 
-(def board-state (r/atom board)) 
+(def state
+  (r/atom {:board board
+           :box []
+           :row []
+           :col []}))
 
 (defn match-nums [n nums]
   "Returns a bool determining whether n is in nums"
@@ -130,21 +147,25 @@
         cells (box-cells box)
         row   (get-row box cell)
         col   (get-col box cell)
-        pos   (get-matrix-nth box cell)
-        state (nth @board-state pos)]
+        state (-> []
+                  (conj (map #(nth (:board @state) %) cells))
+                  (conj (map #(nth (:board @state) %) row))
+                  (conj (map #(nth (:board @state) %) col))
+                  flatten)
+        state (remove zero? state)]
 
-    (if (or (contains? (set (remove zero? cells)) val)
-            (contains? (set (remove zero? row))   val)
-            (contains? (set (remove zero? col))   val))
+    (if (< 1 (count (filter #(= (js/parseInt val) %) state)))
       true
       false)))
+
+(duplicate? 1 3 8)
 
 (defn initialize-board []
   (let [val (for [x (range 1 10)
                   y (range 1 10)]
               (if (= 2 (rand-int 3)) y 0))
         res (into [] val)]
-    (reset! board-state val)))
+    (swap! state assoc-in [:board] board)))
 
 ;; -------------------------
 ;; Styles 
@@ -167,10 +188,11 @@
     :border "2px solid black"}})
 
 (defn cell-style [x y val]
+  (prn val)
   ;; {:style
    {:height "30px"
     :width "30px"
-    :background-color (if (duplicate? x y val) "silver" "white") 
+    :background-color (if (duplicate? x y val) "orange" "white") 
     :text-align "center"
     :border "1px solid black"
     :border-right  (if (match-nums y [3 6 9]) "3px solid black")
@@ -183,11 +205,14 @@
 
 (defn cell [x y val]
   (let [box  (get-box  [x y])
-        cell (get-cell [x y])]
-    [:input {:style (cell-style x y val)
-             :id (str box "-" cell)
-             :value (if (= 0 val) "" val)
-             :on-change #(swap! board-state assoc (get-matrix-nth box cell) (js/parseInt (-> % .-target .-value)))}]))
+        cell (get-cell [x y])
+        n    (get-matrix-nth box cell)]
+
+    [:input {:style     (cell-style x y val)
+             :key       (str box "-" cell)
+             :value     (if (= 0 val) "" val)
+             :on-change #(swap! state assoc-in [:board n] (-> % .-target .-value))
+             }]))
 
 (defn container []
   [:div (container-style)
@@ -195,8 +220,8 @@
     #(cell %1 %2 %3)
     (mapcat #(repeat 9 %) (range 1 10))
     (flatten (repeat 9 (range 1 10)))
-    @board-state)
-   [:div (str @board-state)]
+    (:board @state))
+   [:div (str (:board @state))]
    ])
 
 ;; -------------------------
