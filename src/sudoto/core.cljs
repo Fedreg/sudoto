@@ -7,20 +7,18 @@
 
 (def board
   [1 2 3  4 5 6  7 8 9
-   1 2 3  4 5 6  7 8 9
-   1 2 3  4 5 6  7 8 9
+   2 2 3  4 5 6  7 8 9
+   3 2 3  4 5 6  7 8 9
 
-   1 2 3  4 5 6  7 8 9
-   1 2 3  4 5 6  7 8 9
-   1 2 3  4 5 6  7 8 9
+   4 2 3  4 5 6  7 8 9
+   5 2 3  4 5 6  7 8 9
+   6 2 3  4 5 6  7 8 9
 
-   1 2 3  4 5 6  7 8 9
-   1 2 3  4 5 6  7 8 9
-   1 2 3  4 5 6  7 8 9])
+   7 2 3  4 5 6  7 8 9
+   8 2 3  4 5 6  7 8 9
+   9 2 3  4 5 6  7 8 9])
 
-(def board-state (r/atom board))
-
-(def possible-nums (set (range 1 10)))
+(def board-state (r/atom board)) 
 
 (defn match-nums [n nums]
   "Returns a bool determining whether n is in nums"
@@ -50,15 +48,15 @@
   "Determines which number in the box"
   [[x y]]
   (cond 
-    (match-nums x [1 2 3]) (cond
+    (match-nums x [1 4 7]) (cond
                              (match-nums y [1 4 7]) 1
                              (match-nums y [2 5 8]) 2
                              (match-nums y [3 6 9]) 3)
-    (match-nums x [4 5 6]) (cond
+    (match-nums x [2 5 8]) (cond
                              (match-nums y [1 4 7]) 4
                              (match-nums y [2 5 8]) 5
                              (match-nums y [3 6 9]) 6)
-    (match-nums x [7 8 9]) (cond
+    (match-nums x [3 6 9]) (cond
                              (match-nums y [1 4 7]) 7
                              (match-nums y [2 5 8]) 8
                              (match-nums y [3 6 9]) 9)))
@@ -79,6 +77,7 @@
                                (match-nums cell [1 2 3]) (range 54 63) 
                                (match-nums cell [4 5 6]) (range 63 72)
                                (match-nums cell [7 8 9]) (range 72 81))))
+
 
 (defn get-col 
   "Determines nths in col"
@@ -134,13 +133,12 @@
         pos   (get-matrix-nth box cell)
         state (nth @board-state pos)]
 
-    (if (or (contains? (set cells) val)
-            (contains? (set row)   val)
-            (contains? (set col)   val))
+    (if (or (contains? (set (remove zero? cells)) val)
+            (contains? (set (remove zero? row))   val)
+            (contains? (set (remove zero? col))   val))
       true
       false)))
 
-; Test funcs
 (defn initialize-board []
   (let [val (for [x (range 1 10)
                   y (range 1 10)]
@@ -158,7 +156,7 @@
     :flex-wrap "wrap"
     :width "318px"
     :height "312px"
-    :border "1px solid black"}})
+    :border "3px solid black"}})
 
 (defn box-style []
   {:style
@@ -168,39 +166,36 @@
     :height "100px"
     :border "2px solid black"}})
 
-(defn cell-style []
+(defn cell-style [x y val]
   ;; {:style
    {:height "30px"
     :width "30px"
-    ;; :background-color (cell-color box num)
+    :background-color (if (duplicate? x y val) "silver" "white") 
     :text-align "center"
-    :border "1px solid black"})
+    :border "1px solid black"
+    :border-right  (if (match-nums y [3 6 9]) "3px solid black")
+    :border-bottom (if (match-nums x [3 6 9]) "3px solid black")
+    })
 
 ;; --------------------------
 ;; Views 
 ;; --------------------------
 
-(defn cell [val]
-  [:input {:style (cell-style)
-           :value val }])
-           ;; :on-change #(swap! box-state update-in [box] assoc num (js/parseInt (-> % .-target .-value)))}])
-
-;; (defn box [y]
-;;   [:div (box-style)
-;;    (cell (get-in @box-state [y :1]) y :1)
-;;    (cell (get-in @box-state [y :2]) y :2)
-;;    (cell (get-in @box-state [y :3]) y :3)
-;;    (cell (get-in @box-state [y :4]) y :4)
-;;    (cell (get-in @box-state [y :5]) y :5)
-;;    (cell (get-in @box-state [y :6]) y :6)
-;;    (cell (get-in @box-state [y :7]) y :7)
-;;    (cell (get-in @box-state [y :8]) y :8)
-;;    (cell (get-in @box-state [y :9]) y :9)])
+(defn cell [x y val]
+  (let [box  (get-box  [x y])
+        cell (get-cell [x y])]
+    [:input {:style (cell-style x y val)
+             :id (str box "-" cell)
+             :value (if (= 0 val) "" val)
+             :on-change #(swap! board-state assoc (get-matrix-nth box cell) (js/parseInt (-> % .-target .-value)))}]))
 
 (defn container []
   [:div (container-style)
-   (map #(cell %) board-state)
-   ;; [:button {:on-click (play {:frequency 220})}]
+   (map
+    #(cell %1 %2 %3)
+    (mapcat #(repeat 9 %) (range 1 10))
+    (flatten (repeat 9 (range 1 10)))
+    @board-state)
    [:div (str @board-state)]
    ])
 
@@ -214,4 +209,3 @@
   (initialize-board)
   (mount-root))
 
-(init!)
