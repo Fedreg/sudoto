@@ -2,7 +2,7 @@
   (:require
    [reagent.core :as r]
    [clojure.set  :as set]
-   ;; [sudoto.audio :refer [play]]
+   [sudoto.audio :refer [play]]
    ))
 
 ;; (def board
@@ -217,6 +217,8 @@
     (mapcat #(repeat 9 %) (range 1 10))
     (flatten (repeat 9 (range 1 10)))
     (:board @state))
+   ;; [:div "botton"]
+   [:button {:on-click (fn [] (play {}))} "play"]
    ])
 
 ;; -------------------------
