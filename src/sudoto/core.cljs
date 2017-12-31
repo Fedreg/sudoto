@@ -23,7 +23,7 @@
    2 0 0  0 0 0  3 8 9
    4 0 0  0 0 0  0 0 0
 
-   1 3 2  4 6 4  8 9 7
+   1 3 2  5 6 4  8 9 7
    5 6 4  7 8 9  1 2 3
    7 8 9  2 3 1  4 5 6
 
@@ -95,7 +95,6 @@
                                (match-nums cell [4 5 6]) (range 63 72)
                                (match-nums cell [7 8 9]) (range 72 81))))
 
-
 (defn get-col 
   "Determines nths in col"
   [box cell]
@@ -112,7 +111,6 @@
                                (match-nums cell [1 4 7]) (range 6 79 9)
                                (match-nums cell [2 5 8]) (range 7 80 9) 
                                (match-nums cell [3 6 9]) (range 8 81 9))))
-
 
 (defn nums [n]
   (map #(+ n %)  [0 1 2]))
@@ -142,23 +140,24 @@
 (defn duplicate?
   "Given x y coords, checks box, row, and column to make sure val is not duplicated in any"
   [x y val]
-  (let [box   (get-box [x y])
-        cell  (get-cell [x y])
-        cells (box-cells box)
-        row   (get-row box cell)
-        col   (get-col box cell)
-        state (-> []
-                  (conj (map #(nth (:board @state) %) cells))
-                  (conj (map #(nth (:board @state) %) row))
-                  (conj (map #(nth (:board @state) %) col))
-                  flatten)
-        state (remove zero? state)]
-
-    (if (< 1 (count (filter #(= (js/parseInt val) %) state)))
-      true
-      false)))
-
-(duplicate? 1 3 8)
+  (let [box       (get-box [x y])
+        cell      (get-cell [x y])
+        cells     (box-cells box)
+        row       (get-row box cell)
+        col       (get-col box cell)
+        box-state (->> cells
+                       (map #(nth (:board @state) %))
+                       (remove zero?))
+        row-state (->> row 
+                       (map #(nth (:board @state) %))
+                       (remove zero?))
+        col-state (->> col 
+                       (map #(nth (:board @state) %))
+                       (remove zero?))
+        res       (or (< 1 (count (filter #(= val %) box-state)))
+                      (< 1 (count (filter #(= val %) row-state)))
+                      (< 1 (count (filter #(= val %) col-state))))]
+    res))
 
 (defn initialize-board []
   (let [val (for [x (range 1 10)
@@ -173,30 +172,23 @@
 
 (defn container-style []
   {:style
-   {:display "flex"
-    :flex-wrap "wrap"
-    :width "318px"
-    :height "312px"
-    :border "3px solid black"}})
-
-(defn box-style []
-  {:style
-   {:display "flex"
-    :flex-wrap "wrap"
-    :width "102px"
-    :height "100px"
-    :border "2px solid black"}})
+   {:box-sizing "border-box"
+    :width      "456px"
+    :height     "456px"
+    :border     "3px solid black"}})
 
 (defn cell-style [x y val]
-  (prn val)
   ;; {:style
-   {:height "30px"
-    :width "30px"
-    :background-color (if (duplicate? x y val) "orange" "white") 
-    :text-align "center"
-    :border "1px solid black"
-    :border-right  (if (match-nums y [3 6 9]) "3px solid black")
-    :border-bottom (if (match-nums x [3 6 9]) "3px solid black")
+  {:box-sizing        "border-box"
+   :height            "50px"
+    :width            "50px"
+    :background-color (if (duplicate? x y val) "red" "white")
+    :font-size        "18px"
+    :text-align       "center"
+    :border-top       "1px solid grey"
+    :border-left      "1px solid grey"
+    :border-right     (if (match-nums y [3 6 ]) "3px solid black")
+    :border-bottom    (if (match-nums x [3 6 ]) "3px solid black")
     })
 
 ;; --------------------------
@@ -206,13 +198,17 @@
 (defn cell [x y val]
   (let [box  (get-box  [x y])
         cell (get-cell [x y])
+        value (if (= 0 val) "" val)
         n    (get-matrix-nth box cell)]
 
-    [:input {:style     (cell-style x y val)
+    [:input {:style     (cell-style x y value)
              :key       (str box "-" cell)
-             :value     (if (= 0 val) "" val)
-             :on-change #(swap! state assoc-in [:board n] (-> % .-target .-value))
-             }]))
+             :value     value 
+             :on-change #(swap! state assoc-in [:board n]
+                                (if (and (not= ""  (-> % .-target .-value))
+                                         (not= " " (-> % .-target .-value)))
+                                  (js/parseInt (-> % .-target .-value))
+                                  0))}]))
 
 (defn container []
   [:div (container-style)
@@ -221,11 +217,11 @@
     (mapcat #(repeat 9 %) (range 1 10))
     (flatten (repeat 9 (range 1 10)))
     (:board @state))
-   [:div (str (:board @state))]
    ])
 
 ;; -------------------------
 ;; Initialize app
+;; -------------------------
 
 (defn mount-root []
   (r/render [container] (.getElementById js/document "app")))
