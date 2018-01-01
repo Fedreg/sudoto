@@ -2,7 +2,7 @@
   (:require
    [reagent.core :as r]
    [clojure.set  :as set]
-   [sudoto.audio :refer [play]]
+   [sudoto.audio :as audio]
    ))
 
 ;; (def board
@@ -33,9 +33,7 @@
 
 (def state
   (r/atom {:board board
-           :box []
-           :row []
-           :col []}))
+           :bpm 80}))
 
 (defn match-nums [n nums]
   "Returns a bool determining whether n is in nums"
@@ -210,6 +208,11 @@
                                   (js/parseInt (-> % .-target .-value))
                                   0))}]))
 
+(def notes [{:frequency 110 :octave 2 :duration 0.5}
+            {:frequency 220 :octave 2 :duration 0.5}
+            {:frequency 110 :octave 2 :duration 0.5}
+            {:frequency 250 :octave 4 :duration 0.5}])
+
 (defn container []
   [:div (container-style)
    (map
@@ -218,7 +221,7 @@
     (flatten (repeat 9 (range 1 10)))
     (:board @state))
    ;; [:div "botton"]
-   [:button {:on-click (fn [] (play {}))} "play"]
+   [:button {:on-click (fn [] (audio/play-sequence notes (:bpm @state)))} "play-all"]
    ])
 
 ;; -------------------------
