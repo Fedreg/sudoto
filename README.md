@@ -17,4 +17,4 @@ Once Figwheel starts up, you should be able to open the `public/index.html` page
 lein clean
 lein package
 ```
-Webhook test!!! Again!!! ...again?!  YES!!! FUck man... stop it!!!
+Webhook test!!! Again!!!?
